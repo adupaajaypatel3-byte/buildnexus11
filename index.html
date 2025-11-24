@@ -164,7 +164,22 @@
             margin-top: 10px;
         }
         .testimonial-dots {
-            display: none; 
+            display: flex; 
+            justify-content: center;
+            padding: 10px 0;
+        }
+        .dot {
+            height: 10px;
+            width: 10px;
+            margin: 0 5px;
+            background-color: #bbb;
+            border-radius: 50%;
+            display: inline-block;
+            transition: background-color 0.6s ease;
+            cursor: pointer;
+        }
+        .dot.active {
+            background-color: #1E90FF;
         }
 
         /* AI Mockup */
@@ -215,7 +230,8 @@
             box-shadow: 0 0 60px rgba(30, 144, 255, 0.8), inset 0 0 30px rgba(0, 0, 0, 0.95);
         } 
         /* Upload Box Dragover Feedback */
-        .upload-box:dragover {
+        /* Use the actual class name here, which is just .upload-box:hover for visual feedback */
+        .upload-box.dragover-effect {
             transform: scale(1.1);
             color: #00FFFF; 
             border: 2px solid #00FFFF; 
@@ -389,6 +405,11 @@
                     <h4>— Ben K., Independent Contractor</h4>
                 </div>
             </div>
+            <div class="testimonial-dots" id="testimonialDots">
+                <span class="dot active" data-slide="0"></span>
+                <span class="dot" data-slide="1"></span>
+                <span class="dot" data-slide="2"></span>
+            </div>
         </div>
     </div>
 </section>
@@ -439,7 +460,7 @@
     <h3>Stay Updated with BuildNexus</h3>
     <p>Subscribe to get updates, project insights, and beta access.</p>
     <form id="newsletter-form">
-        <input type="email" placeholder="Enter your email" required>
+        <input type="email" id="newsletter-email" name="email" placeholder="Enter your email" required>
         <button type="submit">Subscribe</button>
     </form>
     <p id="form-message">Thank you for subscribing!</p>
@@ -452,6 +473,7 @@
 const PLACEHOLDER_URL = 'https://picsum.photos/900/500';
 
 function handleImageError(imageElement) {
+    // This is a placeholder for the missing mockup image
     imageElement.src = PLACEHOLDER_URL;
 }
 
@@ -463,7 +485,6 @@ document.addEventListener("DOMContentLoaded", function() {
         const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
         const scrolled = (winScroll / height) * 100;
         
-        // This line updates the width of the bar
         const progressBar = document.getElementById("scroll-progress");
         if (progressBar) {
             progressBar.style.width = scrolled + "%";
@@ -490,27 +511,39 @@ document.addEventListener("DOMContentLoaded", function() {
 
     document.addEventListener('mousemove', handleMouseMove);
 
-    // --- 2. Testimonial Scroll Reveal Logic (Forced Visible) ---
-    const testimonialCards = document.querySelectorAll('.testimonial-card');
+    // --- 2. Testimonial Slider Logic (Now with Dots) ---
+    const slider = document.getElementById('testimonialSlider');
+    const dotsContainer = document.getElementById('testimonialDots');
+    const cards = document.querySelectorAll('.testimonial-card');
+    const dots = document.querySelectorAll('.dot');
+    let currentIndex = 0;
 
-    const observerOptions = {
-        root: null, // relative to the viewport
-        rootMargin: '0px',
-        threshold: 0.2 
-    };
-
-    const testimonialObserver = new IntersectionObserver((entries, observer) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
-                observer.unobserve(entry.target); 
-            }
+    function updateSlider() {
+        cards.forEach((card, index) => {
+            card.style.display = (index === currentIndex) ? 'block' : 'none';
         });
-    }, observerOptions);
 
-    testimonialCards.forEach(card => {
-        testimonialObserver.observe(card);
+        dots.forEach((dot, index) => {
+            dot.classList.toggle('active', index === currentIndex);
+        });
+    }
+
+    // Manual dot navigation
+    dots.forEach(dot => {
+        dot.addEventListener('click', function() {
+            currentIndex = parseInt(this.getAttribute('data-slide'));
+            updateSlider();
+        });
     });
+
+    // Simple auto-advance for visual appeal (3 seconds)
+    setInterval(() => {
+        currentIndex = (currentIndex + 1) % cards.length;
+        updateSlider();
+    }, 5000); 
+
+    // Initialize the slider display
+    updateSlider();
 
     // --- 3. Blueprint Grid Animation Setup ---
     const grid = document.querySelector('.blueprint-grid');
@@ -562,7 +595,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // --- 6. Upload Section Logic ---
+    // --- 6. Upload Section Logic (Drag and Drop) ---
     const uploadBox = document.getElementById('uploadBox');
     const fileInput = document.getElementById('fileInput');
     const uploadPreview = document.getElementById('uploadPreview');
@@ -571,40 +604,50 @@ document.addEventListener("DOMContentLoaded", function() {
     const result = document.getElementById('result');
 
     if (uploadBox && fileInput) {
+        // Handle click event for manual file selection
         uploadBox.addEventListener('click', () => fileInput.click());
         
+        // Prevent default behavior for all drag events
         document.addEventListener('dragover', (e) => e.preventDefault());
         document.addEventListener('drop', (e) => e.preventDefault());
         
+        // Add visual feedback class on dragover
         uploadBox.addEventListener('dragover', (e) => {
             e.preventDefault();
+            uploadBox.classList.add('dragover-effect');
         });
         
+        // Remove visual feedback on dragleave
         uploadBox.addEventListener('dragleave', () => {
-            uploadBox.style.transform = 'scale(1)';
+            uploadBox.classList.remove('dragover-effect');
         });
         
+        // Handle file drop
         uploadBox.addEventListener('drop', (e) => {
             e.preventDefault();
             e.stopPropagation(); 
-            uploadBox.style.transform = 'scale(1)'; 
+            uploadBox.classList.remove('dragover-effect');
             handleFile(e.dataTransfer.files[0]);
         });
 
+        // Handle file selected manually
         fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
 
         function handleFile(file) {
             if (!file || !file.type.match('image.*')) return; 
 
+            // Hide previous sections
             uploadPreview.style.display = 'none';
             loading.style.display = 'none';
             result.style.display = 'none';
             uploadBox.style.display = 'none';
 
+            // Show loading and preview
             previewImage.src = URL.createObjectURL(file);
             uploadPreview.style.display = 'block';
             loading.style.display = 'block';
 
+            // Simulate AI processing time
             setTimeout(() => {
                 loading.style.display = 'none';
                 result.style.display = 'block';
